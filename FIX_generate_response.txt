@@ -1,0 +1,33 @@
+"""
+Simple patch to fix the generate_response method.
+This adds the missing LLM invocation code.
+"""
+
+# Add this after line 234 in voice_agent.py
+
+"""
+Assistant: """
+        
+        try:
+            # Call the LLM
+            response = self.llm.invoke(full_prompt)
+            
+            # Check output guardrails
+            output_checks = guardrails_engine.check_output(response)
+            if not all(check.passed for check in output_checks.values()):
+                logger.warning("output_guardrail_violation", violations=output_checks)
+                response = "I apologize, but I cannot provide that response."
+            
+            state["messages"].append(AIMessage(content=response))
+            state["current_step"] = "response_generated"
+            
+            logger.info("response_generated", length=len(response))
+            
+        except Exception as e:
+            logger.error("llm_invocation_error", error=str(e))
+            response = f"I'm having trouble connecting to the AI model. Please make sure Ollama is running. Error: {str(e)[:100]}"
+            state["messages"].append(AIMessage(content=response))
+            state["current_step"] = "response_error"
+        
+        return state
+"""

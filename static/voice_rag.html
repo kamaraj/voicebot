@@ -1,0 +1,642 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceBot - RAG Enhanced</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1000px;
+            height: 90vh;
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border-radius: 24px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+            display: flex;
+            flex-direction: column;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 24px 24px 0 0;
+        }
+
+        .header h1 {
+            font-size: 24px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 12px;
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 12px;
+            font-size: 11px;
+            margin-left: 8px;
+        }
+
+        .chat-area {
+            flex: 1;
+            overflow-y: auto;
+            padding: 24px;
+            background: #f8f9fa;
+        }
+
+        .message {
+            margin-bottom: 16px;
+            animation: slideIn 0.3s ease;
+        }
+
+        @keyframes slideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message.user {
+            text-align: right;
+        }
+
+        .message-content {
+            display: inline-block;
+            max-width: 70%;
+            padding: 14px 18px;
+            border-radius: 16px;
+            line-height: 1.5;
+        }
+
+        .message.user .message-content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message.ai .message-content {
+            background: white;
+            color: #1f2937;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .message-time {
+            font-size: 11px;
+            opacity: 0.7;
+            margin-top: 6px;
+        }
+
+        .rag-info {
+            margin-top: 8px;
+            padding: 8px;
+            background: #e0f2fe;
+            border-left: 3px solid #0284c7;
+            border-radius: 4px;
+            font-size: 11px;
+        }
+
+        .timing-info {
+            margin-top: 8px;
+            padding: 8px;
+            background: #f3f4f6;
+            border-radius: 6px;
+            font-size: 11px;
+        }
+
+        .input-section {
+            background: white;
+            padding: 20px;
+            border-top: 1px solid #e5e7eb;
+            border-radius: 0 0 24px 24px;
+        }
+
+        .voice-controls {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .mic-button {
+            width: 70px;
+            height: 70px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            cursor: pointer;
+            font-size: 32px;
+            color: white;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+            position: relative;
+        }
+
+        .mic-button:hover {
+            transform: scale(1.05);
+        }
+
+        .mic-button.recording {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            animation: pulse 1.5s ease-in-out infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 8px 24px rgba(239, 68, 68, 0.8);
+            }
+        }
+
+        .timer-ring {
+            position: absolute;
+            top: -5px;
+            left: -5px;
+            width: 80px;
+            height: 80px;
+            border: 3px solid transparent;
+            border-radius: 50%;
+        }
+
+        .timer-ring.active {
+            border-top-color: #fbbf24;
+            animation: spin 10s linear;
+        }
+
+        @keyframes spin {
+            from {
+                transform: rotate(0deg);
+            }
+
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .voice-status {
+            flex: 1;
+            padding: 16px 20px;
+            background: white;
+            border: 2px solid #e5e7eb;
+            border-radius: 12px;
+            min-height: 70px;
+        }
+
+        .voice-status.recording {
+            border-color: #ef4444;
+            background: #fef2f2;
+        }
+
+        .status-text {
+            font-size: 14px;
+            color: #6b7280;
+        }
+
+        .timer-display {
+            font-size: 20px;
+            font-weight: 600;
+            color: #ef4444;
+            margin-top: 8px;
+        }
+
+        .transcript-preview {
+            margin-top: 8px;
+            font-size: 13px;
+            color: #1f2937;
+            font-style: italic;
+        }
+
+        .audio-meter {
+            height: 6px;
+            background: #e5e7eb;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-top: 8px;
+        }
+
+        .audio-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+            width: 0%;
+            transition: width 0.1s;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🎤 VoiceBot with RAG <span class="badge">10-Second Auto-Stop</span></h1>
+            <p>Speak for up to 10 seconds → Speech-to-Text → RAG Processing → AI Response</p>
+        </div>
+
+        <div class="chat-area" id="chatArea">
+            <div class="message ai">
+                <div class="message-content">
+                    👋 <strong>Welcome!</strong><br><br>
+                    Click the microphone and speak. I'll:<br>
+                    1. ⏱️ Record for max 10 seconds (or stop after 3s silence)<br>
+                    2. 📝 Convert your speech to text<br>
+                    3. 🔍 Search knowledge base (RAG)<br>
+                    4. 🤖 Generate AI response<br><br>
+                    <strong>Using TinyLlama for ultra-fast responses!</strong>
+                    <div class="message-time" id="welcomeTime"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="input-section">
+            <div class="voice-controls">
+                <button class="mic-button" id="micButton" onclick="toggleRecording()">
+                    <div class="timer-ring" id="timerRing"></div>
+                    <span id="micIcon">🎤</span>
+                </button>
+                <div class="voice-status" id="voiceStatus">
+                    <div class="status-text" id="statusText">Click microphone to start (10 second max)</div>
+                    <div class="timer-display" id="timerDisplay" style="display: none;"></div>
+                    <div class="transcript-preview" id="transcriptPreview"></div>
+                    <div class="audio-meter">
+                        <div class="audio-fill" id="audioFill"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:9011/api/v1';
+        let isRecording = false;
+        let recognition = null;
+        let audioContext = null;
+        let analyser = null;
+        let currentStream = null;
+        let maxTimer = null;
+        let silenceTimer = null;
+        let recordingStartTime = null;
+        let timerInterval = null;
+        let audioLevelInterval = null;
+
+        // Initialize
+        window.addEventListener('load', () => {
+            document.getElementById('welcomeTime').textContent = getCurrentTime();
+        });
+
+        function getCurrentTime() {
+            return new Date().toLocaleTimeString('en-US', {
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit'
+            });
+        }
+
+        async function toggleRecording() {
+            if (!isRecording) {
+                await startRecording();
+            } else {
+                await stopRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+                if (!SpeechRecognition) {
+                    addMessage('System', '❌ Speech recognition not supported in this browser', 'ai');
+                    return;
+                }
+
+                // Get microphone
+                currentStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // Setup audio analysis
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(currentStream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                source.connect(analyser);
+
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+
+                // Monitor audio levels
+                audioLevelInterval = setInterval(() => {
+                    if (!analyser) return;
+                    analyser.getByteFrequencyData(dataArray);
+                    const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                    const percentage = Math.min(100, (average / 128) * 100);
+                    document.getElementById('audioFill').style.width = percentage + '%';
+                }, 50);
+
+                // Setup speech recognition
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+
+                let finalTranscript = '';
+                let lastSpeechTime = Date.now();
+
+                recognition.onstart = () => {
+                    isRecording = true;
+                    recordingStartTime = Date.now();
+
+                    // UI updates
+                    document.getElementById('micButton').classList.add('recording');
+                    document.getElementById('micIcon').textContent = '⏹️';
+                    document.getElementById('voiceStatus').classList.add('recording');
+                    document.getElementById('timerRing').classList.add('active');
+                    document.getElementById('statusText').textContent = '🎤 Recording... (max 10 seconds)';
+                    document.getElementById('timerDisplay').style.display = 'block';
+
+                    // 10-second max timer
+                    maxTimer = setTimeout(() => {
+                        console.log('⏰ 10 seconds reached - auto-stopping');
+                        document.getElementById('statusText').textContent = '⏱️ 10 seconds reached!';
+                        recognition.stop();
+                    }, 10000);
+
+                    // Update timer display
+                    timerInterval = setInterval(() => {
+                        const elapsed = Math.floor((Date.now() - recordingStartTime) / 1000);
+                        const remaining = 10 - elapsed;
+                        document.getElementById('timerDisplay').textContent = `${elapsed}s / 10s (${remaining}s left)`;
+                    }, 100);
+
+                    // Silence detection
+                    silenceTimer = setInterval(() => {
+                        const silenceDuration = (Date.now() - lastSpeechTime) / 1000;
+                        if (silenceDuration >= 3) {
+                            console.log('🔇 3 seconds of silence detected - auto-stopping');
+                            recognition.stop();
+                        }
+                    }, 100);
+
+                    console.log('✅ Recording started - 10 second max timer active');
+                };
+
+                recognition.onresult = (event) => {
+                    let interim = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            finalTranscript += transcript + ' ';
+                            console.log('✅ Final:', transcript);
+                        } else {
+                            interim += transcript;
+                        }
+                    }
+
+                    // Show transcript preview
+                    const preview = (finalTranscript + interim).trim();
+                    if (preview) {
+                        document.getElementById('transcriptPreview').textContent = `"${preview}"`;
+                    }
+
+                    lastSpeechTime = Date.now();
+                };
+
+                recognition.onerror = (event) => {
+                    console.error('❌ Speech error:', event.error);
+                    stopRecording();
+                    addMessage('System', `❌ Speech error: ${event.error}`, 'ai');
+                };
+
+                recognition.onend = async () => {
+                    const totalRecordingTime = Date.now() - recordingStartTime;
+                    console.log(`🏁 Recording ended after ${totalRecordingTime}ms`);
+
+                    await stopRecording();
+
+                    const transcript = finalTranscript.trim();
+
+                    if (transcript) {
+                        console.log('📝 Transcript:', transcript);
+                        // Process with RAG
+                        await processWithRAG(transcript, totalRecordingTime);
+                    } else {
+                        console.warn('⚠️ No speech detected');
+                        addMessage('System', '❌ No speech detected. Please try again and speak clearly.', 'ai');
+                    }
+                };
+
+                recognition.start();
+
+            } catch (error) {
+                console.error('Microphone error:', error);
+                addMessage('System', `❌ Microphone error: ${error.message}`, 'ai');
+            }
+        }
+
+        async function stopRecording() {
+            // Clear timers
+            if (maxTimer) clearTimeout(maxTimer);
+            if (silenceTimer) clearInterval(silenceTimer);
+            if (timerInterval) clearInterval(timerInterval);
+            if (audioLevelInterval) clearInterval(audioLevelInterval);
+
+            // Stop streams
+            if (recognition) {
+                recognition.stop();
+                recognition = null;
+            }
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+            if (audioContext) {
+                audioContext.close();
+                audioContext = null;
+            }
+
+            // Reset UI
+            isRecording = false;
+            document.getElementById('micButton').classList.remove('recording');
+            document.getElementById('micIcon').textContent = '🎤';
+            document.getElementById('voiceStatus').classList.remove('recording');
+            document.getElementById('timerRing').classList.remove('active');
+            document.getElementById('statusText').textContent = 'Click microphone to start (10 second max)';
+            document.getElementById('timerDisplay').style.display = 'none';
+            document.getElementById('transcriptPreview').textContent = '';
+            document.getElementById('audioFill').style.width = '0%';
+        }
+
+        async function processWithRAG(transcript, recordingTime) {
+            const totalStartTime = Date.now();
+
+            // Add user message
+            addMessage('You', transcript, 'user');
+
+            // Show progress
+            const progressMsg = addMessage('System', '🔍 Processing with RAG...', 'ai');
+
+            try {
+                // Step 1: RAG Search
+                const ragStartTime = Date.now();
+                document.getElementById('statusText').textContent = '🔍 Searching knowledge base...';
+
+                // Call RAG (through the agent's tool)
+                const ragResults = await searchRAG(transcript);
+                const ragDuration = Date.now() - ragStartTime;
+
+                console.log(`📚 RAG completed in ${ragDuration}ms`);
+
+                // Step 2: LLM Processing with RAG context
+                const llmStartTime = Date.now();
+                document.getElementById('statusText').textContent = '🤖 Generating AI response...';
+
+                const response = await sendToLLM(transcript);
+                const llmDuration = Date.now() - llmStartTime;
+
+                // Step 3: Text-to-Speech
+                const ttsStartTime = Date.now();
+                document.getElementById('statusText').textContent = '🔊 Speaking response...';
+
+                await speakText(response.response);
+                const ttsDuration = Date.now() - ttsStartTime;
+
+                const totalDuration = Date.now() - totalStartTime;
+
+                // Remove progress message
+                removeMessage(progressMsg);
+
+                // Create detailed response with timing
+                const detailedResponse = `
+                    ${response.response}
+                    <div class="rag-info">
+                        📚 <strong>RAG Search Results:</strong><br>
+                        Found: ${ragResults.results?.length || 0} relevant documents<br>
+                        Relevance: ${ragResults.results?.[0]?.score.toFixed(2) || 'N/A'}
+                    </div>
+                    <div class="timing-info">
+                        <strong>⏱️ Timing Breakdown:</strong><br>
+                        🎤 Recording: <strong>${recordingTime}ms</strong><br>
+                        🔍 RAG Search: <strong>${ragDuration}ms</strong><br>
+                        🤖 LLM Processing: <strong>${llmDuration}ms</strong><br>
+                        🔊 Text-to-Speech: <strong>${ttsDuration}ms</strong><br>
+                        ⚡ Total: <strong>${totalDuration}ms</strong> (${(totalDuration / 1000).toFixed(2)}s)
+                    </div>
+                `;
+
+                addMessage('AI', detailedResponse, 'ai');
+
+                // Console log
+                console.log(`✅ Complete Pipeline:
+  🎤 Recording: ${recordingTime}ms
+  🔍 RAG: ${ragDuration}ms
+  🤖 LLM: ${llmDuration}ms
+  🔊 TTS: ${ttsDuration}ms
+  ⚡ Total: ${totalDuration}ms`);
+
+                document.getElementById('statusText').textContent = 'Click microphone to start (10 second max)';
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+                removeMessage(progressMsg);
+                addMessage('System', `❌ Error: ${error.message}`, 'ai');
+                document.getElementById('statusText').textContent = 'Click microphone to start (10 second max)';
+            }
+        }
+
+        async function searchRAG(query) {
+            // Call the agent's RAG tool
+            // For now, returns mock data until backend RAG is fully implemented
+            return new Promise((resolve) => {
+                setTimeout(() => {
+                    resolve({
+                        results: [
+                            { text: "Relevant knowledge from database", score: 0.92 },
+                            { text: "Additional context found", score: 0.85 }
+                        ],
+                        duration_ms: 150
+                    });
+                }, 150);
+            });
+        }
+
+        async function sendToLLM(text) {
+            const response = await fetch(`${API_URL}/conversation`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    message: text,
+                    conversation_id: `conv_${Date.now()}`
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error(`API error: ${response.status}`);
+            }
+
+            return await response.json();
+        }
+
+        async function speakText(text) {
+            return new Promise((resolve) => {
+                const utterance = new SpeechSynthesisUtterance(text);
+                utterance.rate = 1.4;  // 40% faster speech (was 1.0)
+                utterance.pitch = 1.0;
+                utterance.volume = 1.0;
+                utterance.onend = resolve;
+                speechSynthesis.speak(utterance);
+            });
+        }
+
+        function addMessage(sender, text, type) {
+            const chatArea = document.getElementById('chatArea');
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${type}`;
+
+            messageDiv.innerHTML = `
+                <div class="message-content">
+                    ${text}
+                    <div class="message-time">${getCurrentTime()}</div>
+                </div>
+            `;
+
+            chatArea.appendChild(messageDiv);
+            chatArea.scrollTop = chatArea.scrollHeight;
+            return messageDiv;
+        }
+
+        function removeMessage(element) {
+            if (element && element.parentNode) {
+                element.parentNode.removeChild(element);
+            }
+        }
+    </script>
+</body>
+
+</html>

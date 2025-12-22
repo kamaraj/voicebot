@@ -1,0 +1,405 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Token Usage Report</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: white;
+            padding: 30px;
+            border-radius: 16px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            margin-bottom: 20px;
+        }
+
+        .header h1 {
+            color: #1f2937;
+            font-size: 32px;
+            margin-bottom: 8px;
+        }
+
+        .header p {
+            color: #6b7280;
+            font-size: 14px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 24px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-4px);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.15);
+        }
+
+        .stat-label {
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            color: #1f2937;
+            font-size: 36px;
+            font-weight: 700;
+        }
+
+        .stat-subtitle {
+            color: #9ca3af;
+            font-size: 12px;
+            margin-top: 4px;
+        }
+
+        .chart {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .chart h2 {
+            color: #1f2937;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        .bar-container {
+            margin-bottom: 16px;
+        }
+
+        .bar-label {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 6px;
+            font-size: 14px;
+        }
+
+        .bar-label-text {
+            color: #374151;
+            font-weight: 500;
+        }
+
+        .bar-label-value {
+            color: #6b7280;
+        }
+
+        .bar-bg {
+            height: 32px;
+            background: #f3f4f6;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .bar-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+            transition: width 0.5s ease;
+            display: flex;
+            align-items: center;
+            padding: 0 12px;
+            color: white;
+            font-weight: 600;
+            font-size: 12px;
+        }
+
+        .cost-table {
+            background: white;
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+        }
+
+        .cost-table h2 {
+            color: #1f2937;
+            font-size: 20px;
+            margin-bottom: 20px;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        th {
+            text-align: left;
+            padding: 12px;
+            background: #f9fafb;
+            color: #6b7280;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        td {
+            padding: 16px 12px;
+            border-bottom: 1px solid #f3f4f6;
+            color: #1f2937;
+            font-size: 14px;
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        .free-badge {
+            display: inline-block;
+            background: #10b981;
+            color: white;
+            padding: 4px 12px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 600;
+        }
+
+        .cost-value {
+            font-weight: 600;
+            font-size: 16px;
+        }
+
+        .cost-savings {
+            color: #10b981;
+            font-weight: 600;
+        }
+
+        .refresh-btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+
+        .refresh-btn:hover {
+            opacity: 0.9;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #6b7280;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 16px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📊 Token Usage Report</h1>
+            <p>Real-time tracking of AI token consumption and cost analysis</p>
+            <button class="refresh-btn" onclick="loadStats()" style="margin-top: 16px;">🔄 Refresh Data</button>
+        </div>
+
+        <div id="loading" class="loading">
+            <div class="spinner"></div>
+            <p>Loading token statistics...</p>
+        </div>
+
+        <div id="stats" style="display: none;">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-label">Total Requests</div>
+                    <div class="stat-value" id="totalRequests">0</div>
+                    <div class="stat-subtitle">API calls processed</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Input Tokens</div>
+                    <div class="stat-value" id="inputTokens">0</div>
+                    <div class="stat-subtitle">User prompts</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Output Tokens</div>
+                    <div class="stat-value" id="outputTokens">0</div>
+                    <div class="stat-subtitle">AI responses</div>
+                </div>
+
+                <div class="stat-card">
+                    <div class="stat-label">Total Tokens</div>
+                    <div class="stat-value" id="totalTokens">0</div>
+                    <div class="stat-subtitle">Combined usage</div>
+                </div>
+            </div>
+
+            <div class="chart">
+                <h2>Token Distribution</h2>
+                <div class="bar-container">
+                    <div class="bar-label">
+                        <span class="bar-label-text">Input Tokens</span>
+                        <span class="bar-label-value" id="inputPercent">0%</span>
+                    </div>
+                    <div class="bar-bg">
+                        <div class="bar-fill" id="inputBar" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div class="bar-container">
+                    <div class="bar-label">
+                        <span class="bar-label-text">Output Tokens</span>
+                        <span class="bar-label-value" id="outputPercent">0%</span>
+                    </div>
+                    <div class="bar-bg">
+                        <div class="bar-fill" id="outputBar" style="width: 0%;"></div>
+                    </div>
+                </div>
+                <div style="margin-top: 20px; padding: 16px; background: #f9fafb; border-radius: 8px;">
+                    <strong>Average tokens per request:</strong> <span id="avgTokens">0</span>
+                </div>
+            </div>
+
+            <div class="cost-table">
+                <h2>💰 Cost Comparison (if you were using paid APIs)</h2>
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Provider</th>
+                            <th>Rate per 1K tokens</th>
+                            <th>Estimated Cost</th>
+                            <th>Your Savings</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td><strong>Ollama (Local)</strong> <span class="free-badge">FREE</span></td>
+                            <td>$0.00</td>
+                            <td class="cost-value">$0.00</td>
+                            <td class="cost-savings">-</td>
+                        </tr>
+                        <tr>
+                            <td>GPT-4 Turbo</td>
+                            <td>$0.01</td>
+                            <td class="cost-value" id="costGPT4">$0.00</td>
+                            <td class="cost-savings" id="savingsGPT4">$0.00</td>
+                        </tr>
+                        <tr>
+                            <td>GPT-3.5 Turbo</td>
+                            <td>$0.002</td>
+                            <td class="cost-value" id="costGPT35">$0.00</td>
+                            <td class="cost-savings" id="savingsGPT35">$0.00</td>
+                        </tr>
+                        <tr>
+                            <td>Claude 3 Sonnet</td>
+                            <td>$0.003</td>
+                            <td class="cost-value" id="costClaude">$0.00</td>
+                            <td class="cost-savings" id="savingsClaude">$0.00</td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        async function loadStats() {
+            document.getElementById('loading').style.display = 'block';
+            document.getElementById('stats').style.display = 'none';
+
+            try {
+                // Get stats from the agent
+                const response = await fetch('http://localhost:9011/api/v1/token-stats');
+                const data = await response.json();
+
+                // Update stat cards
+                document.getElementById('totalRequests').textContent = data.total_requests.toLocaleString();
+                document.getElementById('inputTokens').textContent = data.total_input_tokens.toLocaleString();
+                document.getElementById('outputTokens').textContent = data.total_output_tokens.toLocaleString();
+                document.getElementById('totalTokens').textContent = data.total_tokens.toLocaleString();
+                document.getElementById('avgTokens').textContent = data.avg_tokens_per_request.toLocaleString();
+
+                // Update percentages and bars
+                const inputPercent = (data.total_input_tokens / data.total_tokens * 100) || 0;
+                const outputPercent = (data.total_output_tokens / data.total_tokens * 100) || 0;
+
+                document.getElementById('inputPercent').textContent = inputPercent.toFixed(1) + '%';
+                document.getElementById('outputPercent').textContent = outputPercent.toFixed(1) + '%';
+
+                document.getElementById('inputBar').style.width = inputPercent + '%';
+                document.getElementById('outputBar').style.width = outputPercent + '%';
+
+                // Update costs
+                const costs = data.estimated_cost;
+                document.getElementById('costGPT4').textContent = '$' + costs['gpt-4-turbo'].toFixed(4);
+                document.getElementById('costGPT35').textContent = '$' + costs['gpt-3.5-turbo'].toFixed(4);
+                document.getElementById('costClaude').textContent = '$' + costs['claude-3-sonnet'].toFixed(4);
+
+                document.getElementById('savingsGPT4').textContent = '✅ Saved $' + costs['gpt-4-turbo'].toFixed(4);
+                document.getElementById('savingsGPT35').textContent = '✅ Saved $' + costs['gpt-3.5-turbo'].toFixed(4);
+                document.getElementById('savingsClaude').textContent = '✅ Saved $' + costs['claude-3-sonnet'].toFixed(4);
+
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('stats').style.display = 'block';
+
+            } catch (error) {
+                console.error('Error loading stats:', error);
+                document.getElementById('loading').innerHTML = `
+                    <p style="color: #ef4444;">❌ Error loading stats: ${error.message}</p>
+                    <p style="margin-top: 12px; color: #6b7280;">Make sure the server is running at http://localhost:9011</p>
+                    <button class="refresh-btn" onclick="loadStats()" style="margin-top: 16px;">Try Again</button>
+                `;
+            }
+        }
+
+        // Auto-load on page load
+        window.addEventListener('load', loadStats);
+
+        // Auto-refresh every 5 seconds
+        setInterval(loadStats, 5000);
+    </script>
+</body>
+
+</html>

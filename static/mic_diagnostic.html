@@ -1,0 +1,491 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Microphone Diagnostic Tool</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 700px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 16px;
+        }
+
+        .status-box {
+            background: #f8f9fa;
+            border-radius: 16px;
+            padding: 24px;
+            margin: 20px 0;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            font-weight: 600;
+            color: #374151;
+        }
+
+        .status-value {
+            font-family: 'Courier New', monospace;
+            color: #667eea;
+            font-weight: 600;
+        }
+
+        .status-value.good {
+            color: #10b981;
+        }
+
+        .status-value.bad {
+            color: #ef4444;
+        }
+
+        .mic-button {
+            width: 100px;
+            height: 100px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-size: 40px;
+            cursor: pointer;
+            margin: 20px auto;
+            display: block;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .mic-button:hover {
+            transform: scale(1.1);
+        }
+
+        .mic-button.recording {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 8px 30px rgba(239, 68, 68, 0.8);
+            }
+        }
+
+        .level-meter {
+            width: 100%;
+            height: 100px;
+            background: #f8f9fa;
+            border-radius: 12px;
+            margin: 20px 0;
+            display: flex;
+            align-items: flex-end;
+            justify-content: center;
+            gap: 4px;
+            padding: 10px;
+        }
+
+        .level-bar {
+            width: 12px;
+            background: linear-gradient(to top, #667eea 0%, #764ba2 100%);
+            border-radius: 6px;
+            transition: height 0.1s;
+            min-height: 5px;
+        }
+
+        .console-log {
+            background: #1f2937;
+            color: #10b981;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            max-height: 300px;
+            overflow-y: auto;
+            line-height: 1.8;
+        }
+
+        .log-entry {
+            margin-bottom: 4px;
+        }
+
+        .log-entry.error {
+            color: #ef4444;
+        }
+
+        .log-entry.success {
+            color: #10b981;
+        }
+
+        .log-entry.info {
+            color: #60a5fa;
+        }
+
+        .info-box {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 20px 0;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: inline-block;
+            margin: 5px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn-secondary {
+            background: #6b7280;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔍 Microphone Diagnostic Tool</h1>
+        <p class="subtitle">Test your microphone and diagnose audio issues</p>
+
+        <div class="info-box">
+            <strong>📋 Checklist:</strong>
+            <ul style="margin: 10px 0 0 20px;">
+                <li>Is your microphone connected?</li>
+                <li>Is it selected as default in system settings?</li>
+                <li>Have you allowed microphone access in browser?</li>
+                <li>Is it working in other applications?</li>
+            </ul>
+        </div>
+
+        <button class="mic-button" id="micBtn" onclick="toggleTest()">🎤</button>
+
+        <div class="status-box">
+            <div class="status-item">
+                <span class="status-label">Browser Support:</span>
+                <span class="status-value" id="browserSupport">Checking...</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Microphone Status:</span>
+                <span class="status-value" id="micStatus">Not started</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Current Audio Level:</span>
+                <span class="status-value" id="audioLevel">0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Peak Level:</span>
+                <span class="status-value" id="peakLevel">0</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Threshold (for detection):</span>
+                <span class="status-value">3</span>
+            </div>
+        </div>
+
+        <div class="level-meter" id="levelMeter">
+            <div class="level-bar"></div>
+            <div class="level-bar"></div>
+            <div class="level-bar"></div>
+            <div class="level-bar"></div>
+            <div class="level-bar"></div>
+            <div class="level-bar"></div>
+            <div class="level-bar"></div>
+            <div class="level-bar"></div>
+            <div class="level-bar"></div>
+            <div class="level-bar"></div>
+        </div>
+
+        <div style="text-align: center; margin: 20px 0;">
+            <button class="btn btn-secondary" onclick="clearLogs()">Clear Logs</button>
+            <button class="btn" onclick="copyLogs()">Copy Diagnostic Info</button>
+        </div>
+
+        <div class="console-log" id="consoleLog">
+            <div class="log-entry">Diagnostic tool ready. Click microphone to start test...</div>
+        </div>
+
+        <div class="info-box" style="background: #fef3c7; border-color: #f59e0b;">
+            <strong>💡 Troubleshooting Tips:</strong>
+            <ul style="margin: 10px 0 0 20px;">
+                <li><strong>If audio level stays at 0:</strong> Check system microphone settings</li>
+                <li><strong>If permission denied:</strong> Click lock icon in browser address bar</li>
+                <li><strong>If levels are very low:</strong> Increase microphone volume in system settings</li>
+                <li><strong>Still not working?</strong> Try a different browser (Chrome/Edge recommended)</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        let isRecording = false;
+        let audioContext = null;
+        let analyser = null;
+        let stream = null;
+        let animationFrame = null;
+        let peakLevel = 0;
+        let logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${message}`;
+            logs.push(entry);
+
+            const logDiv = document.getElementById('consoleLog');
+            const logEntry = document.createElement('div');
+            logEntry.className = `log-entry ${type}`;
+            logEntry.textContent = entry;
+            logDiv.appendChild(logEntry);
+            logDiv.scrollTop = logDiv.scrollHeight;
+
+            console.log(message);
+        }
+
+        function checkBrowserSupport() {
+            const hasGetUserMedia = !!(navigator.mediaDevices && navigator.mediaDevices.getUserMedia);
+            const hasSpeechRecognition = !!(window.SpeechRecognition || window.webkitSpeechRecognition);
+            const hasAudioContext = !!(window.AudioContext || window.webkitAudioContext);
+
+            if (hasGetUserMedia && hasSpeechRecognition && hasAudioContext) {
+                document.getElementById('browserSupport').textContent = '✅ Fully Supported';
+                document.getElementById('browserSupport').classList.add('good');
+                log('✅ Browser fully supports all required APIs', 'success');
+            } else {
+                document.getElementById('browserSupport').textContent = '❌ Not Supported';
+                document.getElementById('browserSupport').classList.add('bad');
+                log('❌ Browser missing required APIs', 'error');
+
+                if (!hasGetUserMedia) log('Missing: getUserMedia API', 'error');
+                if (!hasSpeechRecognition) log('Missing: Speech Recognition API', 'error');
+                if (!hasAudioContext) log('Missing: Audio Context API', 'error');
+            }
+        }
+
+        async function toggleTest() {
+            if (!isRecording) {
+                await startTest();
+            } else {
+                stopTest();
+            }
+        }
+
+        async function startTest() {
+            try {
+                log('🎤 Requesting microphone access...', 'info');
+                document.getElementById('micStatus').textContent = 'Requesting access...';
+
+                stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true,
+                        sampleRate: 48000,
+                        channelCount: 1
+                    }
+                });
+
+                log('✅ Microphone access granted!', 'success');
+                document.getElementById('micStatus').textContent = '✅ Active';
+                document.getElementById('micStatus').classList.add('good');
+
+                // Log microphone details
+                const tracks = stream.getAudioTracks();
+                if (tracks.length > 0) {
+                    const track = tracks[0];
+                    log(`📱 Device: ${track.label}`, 'info');
+                    const settings = track.getSettings();
+                    log(`⚙️ Sample Rate: ${settings.sampleRate}Hz`, 'info');
+                    log(`⚙️ Channel Count: ${settings.channelCount}`, 'info');
+                }
+
+                // Setup audio context
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 2048;
+                analyser.smoothingTimeConstant = 0.8;
+                source.connect(analyser);
+
+                log('🔊 Audio analyser initialized', 'success');
+                log('🎯 Detection threshold: 3', 'info');
+                log('📊 Monitoring audio levels...', 'info');
+
+                isRecording = true;
+                document.getElementById('micBtn').classList.add('recording');
+                peakLevel = 0;
+
+                visualize();
+
+            } catch (error) {
+                log(`❌ Error: ${error.name} - ${error.message}`, 'error');
+                document.getElementById('micStatus').textContent = '❌ Failed';
+                document.getElementById('micStatus').classList.add('bad');
+
+                if (error.name === 'NotAllowedError') {
+                    log('💡 Solution: Allow microphone in browser settings', 'info');
+                } else if (error.name === 'NotFoundError') {
+                    log('💡 Solution: Connect a microphone device', 'info');
+                } else if (error.name === 'NotReadableError') {
+                    log('💡 Solution: Close other apps using the microphone', 'info');
+                }
+            }
+        }
+
+        function visualize() {
+            if (!isRecording || !analyser) return;
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+            // Update peak
+            if (average > peakLevel) {
+                peakLevel = average;
+                document.getElementById('peakLevel').textContent = average.toFixed(2);
+            }
+
+            // Update current level
+            document.getElementById('audioLevel').textContent = average.toFixed(2);
+
+            // Update level meter bars
+            const bars = document.querySelectorAll('.level-bar');
+            bars.forEach((bar, i) => {
+                const value = dataArray[i * Math.floor(dataArray.length / bars.length)] || 0;
+                const height = Math.max(5, (value / 255) * 90);
+                bar.style.height = height + 'px';
+            });
+
+            // Log if crossing threshold
+            if (average > 3) {
+                const levelColor = average > 10 ? 'success' : average > 5 ? 'info' : 'info';
+                if (Math.random() < 0.1) { // Log only 10% of the time to avoid spam
+                    log(`🎵 Audio detected: level ${average.toFixed(2)} (above threshold 3)`, levelColor);
+                }
+            }
+
+            animationFrame = requestAnimationFrame(visualize);
+        }
+
+        function stopTest() {
+            isRecording = false;
+
+            if (animationFrame) {
+                cancelAnimationFrame(animationFrame);
+            }
+
+            if (stream) {
+                stream.getTracks().forEach(track => {
+                    track.stop();
+                    log(`🛑 Stopped: ${track.label}`, 'info');
+                });
+            }
+
+            document.getElementById('micBtn').classList.remove('recording');
+            document.getElementById('micStatus').textContent = 'Stopped';
+            document.getElementById('micStatus').classList.remove('good');
+
+            log(`📊 Test complete. Peak level: ${peakLevel.toFixed(2)}`, 'success');
+
+            if (peakLevel < 3) {
+                log('⚠️ WARNING: Peak level below threshold (3)', 'error');
+                log('💡 Your microphone may be too quiet. Increase volume in system settings.', 'info');
+            } else if (peakLevel < 10) {
+                log('⚠️ WARNING: Peak level is low', 'error');
+                log('💡 Consider increasing microphone volume for better detection.', 'info');
+            } else {
+                log('✅ Microphone working well! Peak level is good.', 'success');
+            }
+
+            // Reset bars
+            document.querySelectorAll('.level-bar').forEach(bar => {
+                bar.style.height = '5px';
+            });
+        }
+
+        function clearLogs() {
+            document.getElementById('consoleLog').innerHTML = '<div class="log-entry">Logs cleared.</div>';
+            logs = [];
+        }
+
+        function copyLogs() {
+            const diagnosticInfo = `
+VoiceBot Microphone Diagnostic Report
+=====================================
+Time: ${new Date().toLocaleString()}
+Browser: ${navigator.userAgent}
+Peak Level: ${peakLevel.toFixed(2)}
+
+Logs:
+${logs.join('\n')}
+            `.trim();
+
+            navigator.clipboard.writeText(diagnosticInfo).then(() => {
+                log('📋 Diagnostic info copied to clipboard!', 'success');
+            }).catch(err => {
+                log('❌ Failed to copy: ' + err.message, 'error');
+            });
+        }
+
+        // Initialize on load
+        window.addEventListener('load', () => {
+            checkBrowserSupport();
+        });
+    </script>
+</body>
+
+</html>

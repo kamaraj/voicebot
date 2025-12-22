@@ -1,0 +1,16 @@
+# Voice Processing - Optimized Open-Source Tools
+# Best for speed, accuracy, and local processing
+
+# STT (Speech-to-Text) - FASTEST
+faster-whisper==0.10.1       # 10x faster than regular Whisper, same accuracy
+
+# TTS (Text-to-Speech) - FASTEST
+piper-tts==1.2.0             # Fast, high-quality voice synthesis
+
+# Audio Processing
+pydub==0.25.1                # Audio manipulation
+soundfile==0.12.1            # Audio file I/O
+numpy==1.24.3                # Required for audio processing
+
+# Alternative TTS (if Piper doesn't work)
+# TTS==0.22.0                # Coqui TTS (slower but very natural)
