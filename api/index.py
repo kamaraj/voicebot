@@ -2,12 +2,7 @@
 Vercel Serverless Handler for VoiceBot API.
 Uses the api/ directory pattern for proper ASGI recognition.
 """
-import sys
 import os
-
-# Add the project root to Python path for imports
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 from fastapi import FastAPI, HTTPException, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
@@ -77,11 +72,11 @@ async def root():
         "name": "VoiceBot API (Vercel Serverless)",
         "version": "1.0.0",
         "status": "running",
-        "docs": "/api/docs",
+        "docs": "/docs",
         "endpoints": {
-            "health": "/api/health",
-            "conversation": "/api/conversation",
-            "providers": "/api/llm/providers"
+            "health": "/health",
+            "conversation": "/conversation",
+            "providers": "/llm/providers"
         }
     }
 
@@ -196,7 +191,3 @@ async def general_exception_handler(request: Request, exc: Exception):
         }
     )
 
-
-# Export the app for Vercel
-# Vercel looks for 'app' or 'handler' in the module
-handler = app
