@@ -1,0 +1,425 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceBot - Simple Voice Recording</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .record-btn {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-size: 48px;
+            cursor: pointer;
+            margin: 30px auto;
+            display: block;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .record-btn:hover {
+            transform: scale(1.05);
+        }
+
+        .record-btn.recording {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 8px 30px rgba(239, 68, 68, 0.8);
+            }
+        }
+
+        .status {
+            text-align: center;
+            font-size: 16px;
+            color: #666;
+            margin: 20px 0;
+            min-height: 50px;
+        }
+
+        .levels {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            height: 80px;
+            margin: 20px 0;
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 10px;
+        }
+
+        .level-bar {
+            width: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            transition: height 0.1s;
+        }
+
+        .transcript-box {
+            background: #f0f0f0;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 100px;
+        }
+
+        .transcript-input {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: inherit;
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .transcript-input:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            margin: 5px;
+            transition: transform 0.2s;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .info-box {
+            background: #dbeafe;
+            border-left: 4px solid #3b82f6;
+            padding: 15px;
+            border-radius: 8px;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎤 VoiceBot - Simple Voice Recording</h1>
+        <p class="subtitle">Record your voice, then type what you said (or let AI transcribe it later)</p>
+
+        <button class="record-btn" id="recordBtn" onclick="toggleRecording()">🎤</button>
+
+        <div class="status" id="status">Click microphone to start recording</div>
+
+        <div class="levels" id="levels">
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+        </div>
+
+        <div class="transcript-box" id="transcriptBox" style="display: none;">
+            <strong>What did you say?</strong>
+            <p style="font-size: 13px; color: #666; margin: 10px 0;">Type your message below:</p>
+            <textarea class="transcript-input" id="transcriptInput" placeholder="Type what you said here..."></textarea>
+            <div style="text-align: right; margin-top: 10px;">
+                <button class="btn" onclick="sendMessage()">Send to AI ✈️</button>
+            </div>
+        </div>
+
+        <div class="info-box">
+            <strong>💡 How it works:</strong>
+            <ul style="margin: 10px 0 0 20px;">
+                <li>Click microphone to start recording (max 10 seconds)</li>
+                <li>Speak your message clearly</li>
+                <li>Recording stops after 3 seconds of silence</li>
+                <li>Type what you said in the text box</li>
+                <li>Click "Send to AI" to get a response</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:9011/api/v1';
+        let conversationId = `conv_${Date.now()}`;
+
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let audioContext = null;
+        let analyser = null;
+        let startTime = null;
+        let monitorInterval = null;
+        let lastSoundTime = Date.now();
+
+        async function toggleRecording() {
+            if (!isRecording) {
+                await startRecording();
+            } else {
+                stopRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                console.log('🎤 Requesting microphone access...');
+
+                const stream = await navigator.mediaDevices.getUserMedia({
+                    audio: {
+                        echoCancellation: true,
+                        noiseSuppression: true,
+                        autoGainControl: true
+                    }
+                });
+
+                console.log('✅ Microphone access granted');
+
+                // Setup audio context for visualization
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+
+                // Setup recorder
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    const audioBlob = new Blob(audioChunks, { type: 'audio/webm' });
+                    const sizeKB = (audioBlob.size / 1024).toFixed(2);
+                    const duration = ((Date.now() - startTime) / 1000).toFixed(1);
+
+                    console.log(`✅ Recording complete: ${sizeKB} KB, ${duration}s`);
+
+                    document.getElementById('status').innerHTML =
+                        `✅ Recording complete! (${duration}s, ${sizeKB} KB)<br>Now type what you said below:`;
+
+                    // Show transcript box
+                    document.getElementById('transcriptBox').style.display = 'block';
+                    document.getElementById('transcriptInput').focus();
+
+                    // Reset bars
+                    document.querySelectorAll('.level-bar').forEach(bar => {
+                        bar.style.height = '10px';
+                    });
+                };
+
+                // Start recording
+                mediaRecorder.start();
+                isRecording = true;
+                startTime = Date.now();
+                lastSoundTime = Date.now();
+
+                // UI updates
+                document.getElementById('recordBtn').classList.add('recording');
+                document.getElementById('recordBtn').textContent = '⏹️';
+                document.getElementById('status').textContent = '🎤 Recording... Speak now!';
+                document.getElementById('transcriptBox').style.display = 'none';
+
+                // Start visualizer and monitoring
+                visualize();
+                monitorRecording();
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('status').innerHTML =
+                    '❌ Cannot access microphone<br>' +
+                    'Please allow microphone access in browser settings';
+            }
+        }
+
+        function visualize() {
+            if (!isRecording || !analyser) return;
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+            const bars = document.querySelectorAll('.level-bar');
+            bars.forEach((bar, i) => {
+                const value = dataArray[i * 2] || 0;
+                const height = Math.max(10, (value / 255) * 70);
+                bar.style.height = height + 'px';
+            });
+
+            // Update last sound time if sound detected
+            if (average > 3) {
+                lastSoundTime = Date.now();
+            }
+
+            requestAnimationFrame(visualize);
+        }
+
+        function monitorRecording() {
+            monitorInterval = setInterval(() => {
+                if (!isRecording) {
+                    clearInterval(monitorInterval);
+                    return;
+                }
+
+                const elapsed = (Date.now() - startTime) / 1000;
+                const silenceDuration = (Date.now() - lastSoundTime) / 1000;
+
+                // Max 10 seconds
+                if (elapsed >= 10) {
+                    console.log('⏱️ Max time (10s) reached');
+                    document.getElementById('status').textContent = '⏱️ 10 seconds reached!';
+                    stopRecording();
+                    return;
+                }
+
+                // 3 seconds silence
+                if (silenceDuration >= 3) {
+                    console.log('✅ 3 seconds of silence - auto-stopping');
+                    document.getElementById('status').textContent = '✅ 3s silence detected!';
+                    stopRecording();
+                    return;
+                }
+
+                // Update status
+                if (silenceDuration >= 1) {
+                    const remaining = Math.ceil(3 - silenceDuration);
+                    document.getElementById('status').textContent =
+                        `🤫 Silence - auto-stop in ${remaining}s (${elapsed.toFixed(0)}s / 10s)`;
+                } else {
+                    document.getElementById('status').textContent =
+                        `🎤 Recording... ${elapsed.toFixed(0)}s / 10s`;
+                }
+            }, 100);
+        }
+
+        function stopRecording() {
+            if (!isRecording) return;
+
+            isRecording = false;
+            clearInterval(monitorInterval);
+
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+
+            // UI updates
+            document.getElementById('recordBtn').classList.remove('recording');
+            document.getElementById('recordBtn').textContent = '🎤';
+        }
+
+        async function sendMessage() {
+            const transcript = document.getElementById('transcriptInput').value.trim();
+
+            if (!transcript) {
+                alert('Please type what you said first!');
+                return;
+            }
+
+            console.log('📤 Sending to AI:', transcript);
+            document.getElementById('status').textContent = '🤖 AI is thinking...';
+
+            try {
+                const response = await fetch(`${API_URL}/conversation`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        message: transcript,
+                        conversation_id: conversationId
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error('API request failed');
+                }
+
+                const data = await response.json();
+                console.log('✅ AI response:', data.response);
+
+                // Show response
+                alert(`AI Response:\n\n${data.response}`);
+
+                document.getElementById('status').textContent = '✅ Response received! Record another message or close this.';
+                document.getElementById('transcriptInput').value = '';
+                document.getElementById('transcriptBox').style.display = 'none';
+
+            } catch (error) {
+                console.error('❌ Error:', error);
+                document.getElementById('status').textContent = '❌ Error sending to AI. Please try again.';
+                alert('Error: ' + error.message);
+            }
+        }
+    </script>
+</body>
+
+</html>

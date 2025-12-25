@@ -191,3 +191,11 @@ async def general_exception_handler(request: Request, exc: Exception):
         }
     )
 
+
+# Duplicate endpoint for compatibility with different URL patterns
+@app.post("/api/v1/conversation", response_model=ConversationResponse)
+async def handle_conversation_v1(request: ConversationRequest):
+    """Process a conversation message (v1 API path)."""
+    return await handle_conversation(request)
+
+

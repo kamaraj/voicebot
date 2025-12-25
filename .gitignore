@@ -60,3 +60,4 @@ grafana_data/
 *.tmp
 *.temp
 temp/
+.vercel

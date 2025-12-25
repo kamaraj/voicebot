@@ -2,12 +2,46 @@
     "version": 2,
     "rewrites": [
         {
-            "source": "/api/(.*)",
+            "source": "/api/v1/(.*)",
             "destination": "/api/index"
         },
         {
-            "source": "/(.*)",
+            "source": "/health",
             "destination": "/api/index"
+        },
+        {
+            "source": "/conversation",
+            "destination": "/api/index"
+        },
+        {
+            "source": "/llm/(.*)",
+            "destination": "/api/index"
+        },
+        {
+            "source": "/docs",
+            "destination": "/api/index"
+        },
+        {
+            "source": "/openapi.json",
+            "destination": "/api/index"
+        }
+    ],
+    "routes": [
+        {
+            "src": "/chat",
+            "dest": "/index.html"
+        },
+        {
+            "src": "/voice",
+            "dest": "/voice_chat.html"
+        },
+        {
+            "src": "/help",
+            "dest": "/help.html"
+        },
+        {
+            "src": "/about",
+            "dest": "/about.html"
         }
     ]
 }

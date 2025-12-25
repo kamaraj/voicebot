@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>API Test</title>
+    <style>
+        body {
+            font-family: Arial;
+            padding: 20px;
+            max-width: 800px;
+            margin: 0 auto;
+        }
+
+        .test {
+            margin: 20px 0;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 8px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            background: #667eea;
+            color: white;
+            border: none;
+            border-radius: 6px;
+        }
+
+        button:hover {
+            background: #5568d3;
+        }
+
+        pre {
+            background: #fff;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+
+        .status {
+            margin: 10px 0;
+            font-weight: bold;
+        }
+
+        .success {
+            color: green;
+        }
+
+        .error {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>🔧 VoiceBot API Test</h1>
+
+    <div class="test">
+        <h2>Test 1: Server Health Check</h2>
+        <button onclick="testHealth()">Test Health Endpoint</button>
+        <div id="health-status"></div>
+        <pre id="health-result"></pre>
+    </div>
+
+    <div class="test">
+        <h2>Test 2: API Conversation</h2>
+        <button onclick="testAPI()">Test API Endpoint</button>
+        <div id="api-status"></div>
+        <pre id="api-result"></pre>
+    </div>
+
+    <div class="test">
+        <h2>Test 3: Quick Question</h2>
+        <input type="text" id="question" placeholder="Ask a question..."
+            style="width: 70%; padding: 8px; font-size: 14px;">
+        <button onclick="askQuestion()">Ask</button>
+        <div id="question-status"></div>
+        <pre id="question-result"></pre>
+    </div>
+
+    <script>
+        const API_URL = 'http://localhost:9011';
+
+        async function testHealth() {
+            const statusDiv = document.getElementById('health-status');
+            const resultDiv = document.getElementById('health-result');
+
+            statusDiv.innerHTML = '<div class="status">Testing...</div>';
+            resultDiv.textContent = '';
+
+            try {
+                const response = await fetch(`${API_URL}/health`);
+                const data = await response.json();
+
+                statusDiv.innerHTML = '<div class="status success">✅ Success!</div>';
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="status error">❌ Failed!</div>';
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        async function testAPI() {
+            const statusDiv = document.getElementById('api-status');
+            const resultDiv = document.getElementById('api-result');
+
+            statusDiv.innerHTML = '<div class="status">Testing API...</div>';
+            resultDiv.textContent = '';
+
+            try {
+                const startTime = Date.now();
+
+                const response = await fetch(`${API_URL}/api/v1/conversation`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: "What is Apple?",
+                        conversation_id: `test_${Date.now()}`
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const duration = Date.now() - startTime;
+
+                statusDiv.innerHTML = `<div class="status success">✅ Success! (${duration}ms)</div>`;
+                resultDiv.textContent = JSON.stringify(data, null, 2);
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="status error">❌ Failed!</div>';
+                resultDiv.textContent = `Error: ${error.message}\n\nDetails:\n${error.stack || 'No additional details'}`;
+            }
+        }
+
+        async function askQuestion() {
+            const question = document.getElementById('question').value.trim();
+            if (!question) {
+                alert('Please enter a question');
+                return;
+            }
+
+            const statusDiv = document.getElementById('question-status');
+            const resultDiv = document.getElementById('question-result');
+
+            statusDiv.innerHTML = '<div class="status">Asking...</div>';
+            resultDiv.textContent = '';
+
+            try {
+                const startTime = Date.now();
+
+                const response = await fetch(`${API_URL}/api/v1/conversation`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        message: question,
+                        conversation_id: `test_${Date.now()}`
+                    })
+                });
+
+                if (!response.ok) {
+                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+                }
+
+                const data = await response.json();
+                const duration = Date.now() - startTime;
+
+                statusDiv.innerHTML = `<div class="status success">✅ Response received! (${duration}ms)</div>`;
+                resultDiv.textContent = `Response: ${data.response}\n\nFull data:\n${JSON.stringify(data, null, 2)}`;
+            } catch (error) {
+                statusDiv.innerHTML = '<div class="status error">❌ Failed!</div>';
+                resultDiv.textContent = `Error: ${error.message}`;
+            }
+        }
+
+        // Auto-test on load
+        window.addEventListener('load', () => {
+            console.log('Page loaded. Click buttons to test API endpoints.');
+        });
+    </script>
+</body>
+
+</html>

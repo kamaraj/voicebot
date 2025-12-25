@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>VoiceBot AI - Simple Voice Test</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            max-width: 600px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            margin-bottom: 30px;
+        }
+
+        .mic-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            color: white;
+            font-size: 48px;
+            cursor: pointer;
+            margin: 30px auto;
+            display: block;
+            transition: all 0.3s;
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .mic-button:hover {
+            transform: scale(1.1);
+        }
+
+        .mic-button.recording {
+            background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+            animation: pulse 1.5s infinite;
+        }
+
+        @keyframes pulse {
+
+            0%,
+            100% {
+                box-shadow: 0 4px 12px rgba(239, 68, 68, 0.4);
+            }
+
+            50% {
+                box-shadow: 0 8px 30px rgba(239, 68, 68, 0.8);
+            }
+        }
+
+        .status {
+            text-align: center;
+            font-size: 18px;
+            color: #666;
+            margin: 20px 0;
+            min-height: 60px;
+            font-weight: 500;
+        }
+
+        .timer {
+            text-align: center;
+            font-size: 32px;
+            font-weight: bold;
+            color: #667eea;
+            margin: 20px 0;
+        }
+
+        .levels {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 4px;
+            height: 80px;
+            margin: 20px 0;
+            background: #f5f5f5;
+            border-radius: 12px;
+            padding: 10px;
+        }
+
+        .level-bar {
+            width: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            transition: height 0.1s;
+        }
+
+        .transcript {
+            background: #f0f0f0;
+            border: 2px solid #667eea;
+            border-radius: 12px;
+            padding: 20px;
+            margin: 20px 0;
+            min-height: 100px;
+            display: none;
+        }
+
+        .transcript.show {
+            display: block;
+        }
+
+        .transcript-label {
+            font-weight: bold;
+            color: #667eea;
+            margin-bottom: 10px;
+        }
+
+        .info {
+            background: #e3f2fd;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #2196f3;
+            margin: 20px 0;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🎤 VoiceBot - Voice Test</h1>
+        <p class="subtitle">Test your microphone and see audio levels in real-time</p>
+
+        <div class="info">
+            <strong>How it works:</strong>
+            <ul style="margin: 10px 0 0 20px;">
+                <li>Click microphone to start</li>
+                <li>Speak clearly for up to 10 seconds</li>
+                <li>See audio levels move when speaking</li>
+                <li>Auto-stops after 3 seconds of silence</li>
+            </ul>
+        </div>
+
+        <button class="mic-button" id="micBtn" onclick="toggleRecording()">🎤</button>
+
+        <div class="timer" id="timer">0s / 10s</div>
+
+        <div class="status" id="status">Click microphone to start recording</div>
+
+        <div class="levels" id="levels">
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+            <div class="level-bar" style="height: 10px;"></div>
+        </div>
+
+        <div class="transcript" id="transcript">
+            <div class="transcript-label">✅ Result:</div>
+            <div id="transcriptText"></div>
+        </div>
+    </div>
+
+    <script>
+        let mediaRecorder = null;
+        let audioChunks = [];
+        let isRecording = false;
+        let audioContext = null;
+        let analyser = null;
+        let startTime = null;
+        let timerInterval = null;
+        let silenceTimer = null;
+        let lastSoundTime = Date.now();
+        let animationFrame = null;
+
+        async function toggleRecording() {
+            if (!isRecording) {
+                await startRecording();
+            } else {
+                stopRecording();
+            }
+        }
+
+        async function startRecording() {
+            try {
+                document.getElementById('transcript').classList.remove('show');
+                document.getElementById('transcriptText').textContent = '';
+
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+
+                // Setup audio context
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                const source = audioContext.createMediaStreamSource(stream);
+                analyser = audioContext.createAnalyser();
+                analyser.fftSize = 256;
+                source.connect(analyser);
+
+                // Setup recorder
+                mediaRecorder = new MediaRecorder(stream);
+                audioChunks = [];
+
+                mediaRecorder.ondataavailable = (event) => {
+                    if (event.data.size > 0) {
+                        audioChunks.push(event.data);
+                    }
+                };
+
+                mediaRecorder.onstop = () => {
+                    processRecording();
+                };
+
+                // Start recording
+                mediaRecorder.start();
+                isRecording = true;
+                startTime = Date.now();
+                lastSoundTime = Date.now();
+
+                // UI updates
+                document.getElementById('micBtn').classList.add('recording');
+                document.getElementById('status').textContent = '🎤 Recording... Speak now!';
+
+                // Start visualizer
+                visualize();
+
+                // Start timer
+                timerInterval = setInterval(() => {
+                    const elapsed = Math.floor((Date.now() - startTime) / 1000);
+                    document.getElementById('timer').textContent = `${elapsed}s / 10s`;
+
+                    // Max 10 seconds
+                    if (elapsed >= 10) {
+                        document.getElementById('status').textContent = '⏱️ 10 seconds reached!';
+                        stopRecording();
+                    }
+                }, 100);
+
+                // Silence detection
+                detectSilence();
+
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('status').innerHTML =
+                    '❌ Cannot access microphone<br>' +
+                    'Please allow microphone access<br>' +
+                    'Check browser permissions';
+            }
+        }
+
+        function visualize() {
+            if (!isRecording || !analyser) return;
+
+            const dataArray = new Uint8Array(analyser.frequencyBinCount);
+            analyser.getByteFrequencyData(dataArray);
+
+            const bars = document.querySelectorAll('.level-bar');
+            const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+
+            bars.forEach((bar, i) => {
+                const value = dataArray[i * 2] || 0;
+                const height = Math.max(10, (value / 255) * 70);
+                bar.style.height = height + 'px';
+            });
+
+            // Update last sound time if sound detected
+            if (average > 30) {
+                lastSoundTime = Date.now();
+            }
+
+            animationFrame = requestAnimationFrame(visualize);
+        }
+
+        function detectSilence() {
+            silenceTimer = setInterval(() => {
+                if (!isRecording) return;
+
+                const silenceDuration = (Date.now() - lastSoundTime) / 1000;
+                const elapsed = Math.floor((Date.now() - startTime) / 1000);
+
+                if (silenceDuration >= 3) {
+                    document.getElementById('status').textContent = '✅ 3 seconds of silence - done!';
+                    stopRecording();
+                } else if (silenceDuration >= 1) {
+                    const remaining = Math.ceil(3 - silenceDuration);
+                    document.getElementById('status').textContent =
+                        `🤫 Silence detected - auto-stop in ${remaining}s (${elapsed}s / 10s)`;
+                } else {
+                    document.getElementById('status').textContent =
+                        `🎤 Recording... speak clearly (${elapsed}s / 10s)`;
+                }
+            }, 100);
+        }
+
+        function stopRecording() {
+            if (!isRecording) return;
+
+            isRecording = false;
+            clearInterval(timerInterval);
+            clearInterval(silenceTimer);
+            cancelAnimationFrame(animationFrame);
+
+            if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+                mediaRecorder.stop();
+                mediaRecorder.stream.getTracks().forEach(track => track.stop());
+            }
+
+            // UI updates
+            document.getElementById('micBtn').classList.remove('recording');
+            document.getElementById('status').textContent = '🔄 Processing...';
+
+            // Reset bars
+            document.querySelectorAll('.level-bar').forEach(bar => {
+                bar.style.height = '10px';
+            });
+        }
+
+        function processRecording() {
+            const audioBlob = new Blob(audioChunks, { type: 'audio/wav' });
+            const sizeKB = (audioBlob.size / 1024).toFixed(2);
+            const duration = Math.floor((Date.now() - startTime) / 1000);
+
+            document.getElementById('transcript').classList.add('show');
+            document.getElementById('transcriptText').innerHTML =
+                `<strong>✅ Recording successful!</strong><br><br>` +
+                `📊 Duration: ${duration} seconds<br>` +
+                `📦 Size: ${sizeKB} KB<br>` +
+                `🎤 Audio captured successfully<br><br>` +
+                `<strong>Note:</strong> This is a TEST page to verify your microphone works.<br>` +
+                `The audio was recorded successfully!<br><br>` +
+                `For text chat with AI, use: <a href="/chat" style="color: #667eea;">http://localhost:9011/chat</a> (Text mode)`;
+
+            document.getElementById('status').textContent =
+                '✅ Done! Click microphone to test again';
+            document.getElementById('timer').textContent = '0s / 10s';
+        }
+    </script>
+</body>
+
+</html>

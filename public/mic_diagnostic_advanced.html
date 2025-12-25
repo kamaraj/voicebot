@@ -1,0 +1,600 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Advanced Microphone Diagnostic</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 800px;
+            background: white;
+            border-radius: 24px;
+            padding: 40px;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        h1 {
+            color: #667eea;
+            margin-bottom: 10px;
+            font-size: 28px;
+        }
+
+        .subtitle {
+            color: #6b7280;
+            margin-bottom: 30px;
+            font-size: 14px;
+        }
+
+        .section {
+            background: #f9fafb;
+            border-radius: 12px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .section h2 {
+            color: #1f2937;
+            font-size: 18px;
+            margin-bottom: 15px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .status {
+            padding: 12px 16px;
+            border-radius: 8px;
+            margin-bottom: 12px;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .status.info {
+            background: #dbeafe;
+            color: #1e40af;
+        }
+
+        .status.success {
+            background: #d1fae5;
+            color: #065f46;
+        }
+
+        .status.warning {
+            background: #fef3c7;
+            color: #92400e;
+        }
+
+        .status.error {
+            background: #fee2e2;
+            color: #991b1b;
+        }
+
+        .btn {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 15px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn:hover {
+            transform: translateY(-2px);
+        }
+
+        .btn.secondary {
+            background: #6b7280;
+        }
+
+        .controls {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .meter {
+            width: 100%;
+            height: 40px;
+            background: #e5e7eb;
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            margin-top: 10px;
+        }
+
+        .meter-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #10b981 0%, #059669 100%);
+            transition: width 0.1s;
+            border-radius: 8px;
+        }
+
+        .meter-label {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-weight: 600;
+            color: #1f2937;
+            font-size: 14px;
+        }
+
+        #waveform {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 4px;
+            height: 60px;
+            margin-top: 15px;
+        }
+
+        .bar {
+            width: 8px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 4px;
+            transition: height 0.1s;
+        }
+
+        .device-select {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e5e7eb;
+            border-radius: 8px;
+            font-size: 14px;
+            margin-top: 10px;
+        }
+
+        pre {
+            background: #1f2937;
+            color: #10b981;
+            padding: 15px;
+            border-radius: 8px;
+            font-size: 12px;
+            overflow-x: auto;
+            margin-top: 10px;
+            max-height: 200px;
+            overflow-y: auto;
+        }
+
+        .log-entry {
+            margin-bottom: 5px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .log-entry.error {
+            color: #ef4444;
+        }
+
+        .log-entry.warning {
+            color: #f59e0b;
+        }
+
+        .log-entry.success {
+            color: #10b981;
+        }
+
+        .speech-result {
+            background: white;
+            padding: 15px;
+            border-radius: 8px;
+            border-left: 4px solid #667eea;
+            margin-top: 10px;
+            font-size: 14px;
+        }
+    </style>
+</head>
+
+<body>
+    <div class="container">
+        <h1>🔬 Advanced Microphone Diagnostic</h1>
+        <p class="subtitle">Comprehensive testing to identify and fix microphone issues</p>
+
+        <!-- Step 1: Device Selection -->
+        <div class="section">
+            <h2>🎤 Step 1: Select Your Microphone</h2>
+            <div class="status info" id="deviceStatus">
+                <span>📋</span>
+                <span>Click "Detect Devices" to find available microphones</span>
+            </div>
+            <div class="controls">
+                <button class="btn" onclick="detectDevices()">🔍 Detect Devices</button>
+            </div>
+            <select class="device-select" id="deviceSelect" style="display: none;" onchange="deviceChanged()">
+                <option>Select a microphone...</option>
+            </select>
+        </div>
+
+        <!-- Step 2: Audio Level Test -->
+        <div class="section">
+            <h2>🔊 Step 2: Test Audio Levels</h2>
+            <div class="status info" id="audioStatus">
+                <span>📊</span>
+                <span>Select a microphone first, then test audio levels</span>
+            </div>
+            <div class="controls">
+                <button class="btn" id="audioTestBtn" onclick="testAudioLevels()" disabled>🎵 Test Audio Levels</button>
+                <button class="btn secondary" id="stopAudioBtn" onclick="stopAudioTest()" disabled
+                    style="display: none;">⏹️ Stop Test</button>
+            </div>
+            <div class="meter">
+                <div class="meter-fill" id="audioMeter" style="width: 0%"></div>
+                <div class="meter-label" id="meterLabel">0 dB</div>
+            </div>
+            <div id="waveform"></div>
+        </div>
+
+        <!-- Step 3: Speech Recognition Test -->
+        <div class="section">
+            <h2>🗣️ Step 3: Test Speech Recognition</h2>
+            <div class="status info" id="speechStatus">
+                <span>🎙️</span>
+                <span>Test if browser can recognize your speech</span>
+            </div>
+            <div class="controls">
+                <button class="btn" id="speechTestBtn" onclick="testSpeechRecognition()" disabled>🎤 Test Speech
+                    Recognition</button>
+                <button class="btn secondary" id="stopSpeechBtn" onclick="stopSpeechTest()" disabled
+                    style="display: none;">⏹️ Stop Recognition</button>
+            </div>
+            <div id="speechResult"></div>
+        </div>
+
+        <!-- Diagnostic Log -->
+        <div class="section">
+            <h2>📝 Diagnostic Log</h2>
+            <pre id="logOutput"></pre>
+        </div>
+
+        <!-- Solutions -->
+        <div class="section">
+            <h2>💡 Common Solutions</h2>
+            <div class="status warning">
+                <span>⚠️</span>
+                <span><strong>If audio level stays at 0:</strong> Check Windows microphone settings, unmute mic,
+                    increase volume</span>
+            </div>
+            <div class="status warning">
+                <span>⚠️</span>
+                <span><strong>If multiple devices:</strong> Try selecting different microphones from the dropdown</span>
+            </div>
+            <div class="status warning">
+                <span>⚠️</span>
+                <span><strong>If speech not detected:</strong> Speak louder and closer to microphone</span>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let audioContext = null;
+        let analyser = null;
+        let microphone = null;
+        let javascriptNode = null;
+        let animationFrame = null;
+        let currentStream = null;
+        let recognition = null;
+        let devices = [];
+
+        // Create waveform bars
+        function createWaveform() {
+            const waveform = document.getElementById('waveform');
+            for (let i = 0; i < 20; i++) {
+                const bar = document.createElement('div');
+                bar.className = 'bar';
+                bar.style.height = '10px';
+                waveform.appendChild(bar);
+            }
+        }
+
+        createWaveform();
+
+        // Logger
+        function log(message, type = 'info') {
+            const logOutput = document.getElementById('logOutput');
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = document.createElement('div');
+            entry.className = `log-entry ${type}`;
+            entry.textContent = `[${timestamp}] ${message}`;
+            logOutput.appendChild(entry);
+            logOutput.scrollTop = logOutput.scrollHeight;
+            console.log(message);
+        }
+
+        // Detect Devices
+        async function detectDevices() {
+            try {
+                log('Requesting microphone access...', 'info');
+
+                // Request permission first
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                stream.getTracks().forEach(track => track.stop());
+
+                // Now enumerate devices
+                const allDevices = await navigator.mediaDevices.enumerateDevices();
+                devices = allDevices.filter(device => device.kind === 'audioinput');
+
+                log(`Found ${devices.length} audio input device(s)`, 'success');
+
+                const deviceSelect = document.getElementById('deviceSelect');
+                const deviceStatus = document.getElementById('deviceStatus');
+
+                deviceSelect.innerHTML = '';
+                devices.forEach((device, index) => {
+                    const option = document.createElement('option');
+                    option.value = device.deviceId;
+                    option.text = device.label || `Microphone ${index + 1}`;
+                    deviceSelect.appendChild(option);
+                    log(`Device ${index + 1}: ${device.label || 'Unknown'}`, 'info');
+                });
+
+                deviceSelect.style.display = 'block';
+                deviceStatus.className = 'status success';
+                deviceStatus.innerHTML = `<span>✅</span><span>Found ${devices.length} microphone(s). Select one to continue.</span>`;
+
+                if (devices.length > 0) {
+                    document.getElementById('audioTestBtn').disabled = false;
+                    document.getElementById('speechTestBtn').disabled = false;
+                }
+
+            } catch (error) {
+                log(`Error: ${error.message}`, 'error');
+                const deviceStatus = document.getElementById('deviceStatus');
+                deviceStatus.className = 'status error';
+                deviceStatus.innerHTML = `<span>❌</span><span>Failed: ${error.message}</span>`;
+            }
+        }
+
+        function deviceChanged() {
+            const select = document.getElementById('deviceSelect');
+            const selectedDevice = devices.find(d => d.deviceId === select.value);
+            if (selectedDevice) {
+                log(`Selected: ${selectedDevice.label}`, 'success');
+            }
+        }
+
+        // Test Audio Levels
+        async function testAudioLevels() {
+            try {
+                const deviceSelect = document.getElementById('deviceSelect');
+                const deviceId = deviceSelect.value;
+
+                log('Starting audio level test...', 'info');
+
+                const constraints = {
+                    audio: {
+                        deviceId: deviceId ? { exact: deviceId } : undefined,
+                        echoCancellation: false,
+                        noiseSuppression: false,
+                        autoGainControl: false
+                    }
+                };
+
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+                audioContext = new (window.AudioContext || window.webkitAudioContext)();
+                analyser = audioContext.createAnalyser();
+                microphone = audioContext.createMediaStreamSource(currentStream);
+                javascriptNode = audioContext.createScriptProcessor(2048, 1, 1);
+
+                analyser.smoothingTimeConstant = 0.3;
+                analyser.fftSize = 2048;
+
+                microphone.connect(analyser);
+                analyser.connect(javascriptNode);
+                javascriptNode.connect(audioContext.destination);
+
+                javascriptNode.onaudioprocess = function () {
+                    const array = new Uint8Array(analyser.frequencyBinCount);
+                    analyser.getByteFrequencyData(array);
+                    const average = array.reduce((a, b) => a + b) / array.length;
+
+                    // Update meter
+                    const percentage = Math.min(100, (average / 128) * 100);
+                    document.getElementById('audioMeter').style.width = percentage + '%';
+                    document.getElementById('meterLabel').textContent = average.toFixed(2) + ' dB';
+
+                    // Update waveform
+                    const bars = document.querySelectorAll('.bar');
+                    bars.forEach((bar, index) => {
+                        const value = array[index * 4] || 0;
+                        const height = Math.max(10, (value / 255) * 60);
+                        bar.style.height = height + 'px';
+                    });
+
+                    // Log significant changes
+                    if (average > 10) {
+                        log(`Audio detected: ${average.toFixed(2)} dB`, 'success');
+                    }
+                };
+
+                document.getElementById('audioTestBtn').style.display = 'none';
+                document.getElementById('stopAudioBtn').style.display = 'inline-flex';
+
+                const audioStatus = document.getElementById('audioStatus');
+                audioStatus.className = 'status success';
+                audioStatus.innerHTML = '<span>🎵</span><span>Audio test running! Make some noise into the microphone...</span>';
+
+                log('Audio test started. Speak into your microphone!', 'success');
+
+            } catch (error) {
+                log(`Audio test error: ${error.message}`, 'error');
+                const audioStatus = document.getElementById('audioStatus');
+                audioStatus.className = 'status error';
+                audioStatus.innerHTML = `<span>❌</span><span>Error: ${error.message}</span>`;
+            }
+        }
+
+        function stopAudioTest() {
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+            }
+            if (javascriptNode) {
+                javascriptNode.disconnect();
+            }
+            if (analyser) {
+                analyser.disconnect();
+            }
+            if (microphone) {
+                microphone.disconnect();
+            }
+            if (audioContext) {
+                audioContext.close();
+            }
+
+            document.getElementById('audioTestBtn').style.display = 'inline-flex';
+            document.getElementById('stopAudioBtn').style.display = 'none';
+            document.getElementById('audioMeter').style.width = '0%';
+            document.getElementById('meterLabel').textContent = '0 dB';
+
+            const audioStatus = document.getElementById('audioStatus');
+            audioStatus.className = 'status info';
+            audioStatus.innerHTML = '<span>📊</span><span>Audio test stopped</span>';
+
+            log('Audio test stopped', 'info');
+        }
+
+        // Test Speech Recognition
+        async function testSpeechRecognition() {
+            try {
+                const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+
+                if (!SpeechRecognition) {
+                    throw new Error('Speech recognition not supported in this browser');
+                }
+
+                const deviceSelect = document.getElementById('deviceSelect');
+                const deviceId = deviceSelect.value;
+
+                // Request microphone access with selected device
+                if (currentStream) {
+                    currentStream.getTracks().forEach(track => track.stop());
+                }
+
+                const constraints = {
+                    audio: {
+                        deviceId: deviceId ? { exact: deviceId } : undefined
+                    }
+                };
+
+                currentStream = await navigator.mediaDevices.getUserMedia(constraints);
+
+                recognition = new SpeechRecognition();
+                recognition.continuous = true;
+                recognition.interimResults = true;
+                recognition.lang = 'en-US';
+
+                const resultDiv = document.getElementById('speechResult');
+                resultDiv.innerHTML = '';
+
+                recognition.onstart = () => {
+                    log('Speech recognition started', 'success');
+                    const speechStatus = document.getElementById('speechStatus');
+                    speechStatus.className = 'status success';
+                    speechStatus.innerHTML = '<span>🎤</span><span>Listening... Speak now!</span>';
+
+                    document.getElementById('speechTestBtn').style.display = 'none';
+                    document.getElementById('stopSpeechBtn').style.display = 'inline-flex';
+                };
+
+                recognition.onresult = (event) => {
+                    let final = '';
+                    let interim = '';
+
+                    for (let i = event.resultIndex; i < event.results.length; i++) {
+                        const transcript = event.results[i][0].transcript;
+                        if (event.results[i].isFinal) {
+                            final += transcript + ' ';
+                            log(`Recognized: "${transcript}"`, 'success');
+                        } else {
+                            interim += transcript;
+                        }
+                    }
+
+                    resultDiv.innerHTML = '';
+                    if (final) {
+                        const finalDiv = document.createElement('div');
+                        finalDiv.className = 'speech-result';
+                        finalDiv.innerHTML = `<strong>Final:</strong> ${final}`;
+                        resultDiv.appendChild(finalDiv);
+                    }
+                    if (interim) {
+                        const interimDiv = document.createElement('div');
+                        interimDiv.className = 'speech-result';
+                        interimDiv.style.opacity = '0.6';
+                        interimDiv.innerHTML = `<strong>Interim:</strong> ${interim}`;
+                        resultDiv.appendChild(interimDiv);
+                    }
+                };
+
+                recognition.onerror = (event) => {
+                    log(`Speech error: ${event.error}`, 'error');
+                    const speechStatus = document.getElementById('speechStatus');
+                    speechStatus.className = 'status error';
+                    speechStatus.innerHTML = `<span>❌</span><span>Error: ${event.error}</span>`;
+                };
+
+                recognition.onend = () => {
+                    log('Speech recognition ended', 'info');
+                    document.getElementById('speechTestBtn').style.display = 'inline-flex';
+                    document.getElementById('stopSpeechBtn').style.display = 'none';
+                };
+
+                recognition.start();
+
+            } catch (error) {
+                log(`Speech recognition error: ${error.message}`, 'error');
+                const speechStatus = document.getElementById('speechStatus');
+                speechStatus.className = 'status error';
+                speechStatus.innerHTML = `<span>❌</span><span>Error: ${error.message}</span>`;
+            }
+        }
+
+        function stopSpeechTest() {
+            if (recognition) {
+                recognition.stop();
+            }
+            if (currentStream) {
+                currentStream.getTracks().forEach(track => track.stop());
+                currentStream = null;
+            }
+
+            const speechStatus = document.getElementById('speechStatus');
+            speechStatus.className = 'status info';
+            speechStatus.innerHTML = '<span>🎙️</span><span>Speech test stopped</span>';
+
+            document.getElementById('speechTestBtn').style.display = 'inline-flex';
+            document.getElementById('stopSpeechBtn').style.display = 'none';
+        }
+
+        // Initial log
+        log('Diagnostic tool loaded. Click "Detect Devices" to begin.', 'info');
+    </script>
+</body>
+
+</html>
