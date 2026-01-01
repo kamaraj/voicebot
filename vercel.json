@@ -2,6 +2,22 @@
     "version": 2,
     "rewrites": [
         {
+            "source": "/chat",
+            "destination": "/index.html"
+        },
+        {
+            "source": "/voice",
+            "destination": "/voice_chat.html"
+        },
+        {
+            "source": "/help",
+            "destination": "/help.html"
+        },
+        {
+            "source": "/about",
+            "destination": "/about.html"
+        },
+        {
             "source": "/api/v1/(.*)",
             "destination": "/api/index"
         },
@@ -24,24 +40,6 @@
         {
             "source": "/openapi.json",
             "destination": "/api/index"
-        }
-    ],
-    "routes": [
-        {
-            "src": "/chat",
-            "dest": "/index.html"
-        },
-        {
-            "src": "/voice",
-            "dest": "/voice_chat.html"
-        },
-        {
-            "src": "/help",
-            "dest": "/help.html"
-        },
-        {
-            "src": "/about",
-            "dest": "/about.html"
         }
     ]
 }
