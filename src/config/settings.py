@@ -84,7 +84,7 @@ class Settings(BaseSettings):
     enable_memory: bool = True
     
     # Costs & Limits
-    max_tokens_per_request: int = 2000
+    max_tokens_per_request: int = 256  # Keep responses concise
     cost_tracking_enabled: bool = True
     
     model_config = SettingsConfigDict(

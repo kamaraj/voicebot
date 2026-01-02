@@ -120,9 +120,30 @@ async def list_providers():
     }
 
 
+# Global RAG instance (lazy initialization)
+_rag_instance = None
+
+
+def get_rag():
+    """Get or create RAG instance."""
+    global _rag_instance
+    if _rag_instance is None:
+        try:
+            from api.lightweight_rag import LightweightRAG
+            import os
+            
+            # Look for embeddings file in api/ directory
+            embeddings_path = os.path.join(os.path.dirname(__file__), "faq_embeddings.json")
+            _rag_instance = LightweightRAG(embeddings_file=embeddings_path)
+        except Exception as e:
+            print(f"RAG initialization error: {e}")
+            _rag_instance = None
+    return _rag_instance
+
+
 @app.post("/conversation", response_model=ConversationResponse)
 async def handle_conversation(request: ConversationRequest):
-    """Process a conversation message."""
+    """Process a conversation message with RAG-enhanced context."""
     conversation_id = request.conversation_id or f"conv_{uuid.uuid4().hex[:16]}"
     start_time = time.time()
     
@@ -134,13 +155,38 @@ async def handle_conversation(request: ConversationRequest):
                 detail="LLM client not available. Please check GROQ_API_KEY."
             )
         
-        # System prompt for customer support
-        system_prompt = """You are a helpful customer support assistant for a childcare center.
-You answer questions about admissions, fees, programs, schedules, and policies.
-Be friendly, professional, and concise in your responses.
-If you don't know the answer, say so honestly and offer to help in other ways."""
+        # RAG: Retrieve relevant documents
+        rag_start = time.time()
+        rag = get_rag()
+        rag_context = ""
+        rag_results = []
         
-        # Call Groq API
+        if rag and rag.documents:
+            rag_results = rag.search(request.message, top_k=3)
+            if rag_results:
+                rag_context = "\n\n".join([
+                    f"{r['text'][:500]}"
+                    for r in rag_results
+                ])
+        rag_time = time.time() - rag_start
+        
+        # Build system prompt - STRICT: use only document content
+        if rag_context:
+            system_prompt = f"""Answer the question using ONLY the information provided below.
+
+DOCUMENT CONTENT:
+{rag_context}
+
+RULES:
+1. Use ONLY information from the document - do NOT add extra details
+2. Keep your answer SHORT and DIRECT (2-3 sentences max)
+3. Do NOT elaborate or add information not in the document
+4. Answer directly without saying "according to the document" """
+        else:
+            system_prompt = """You are a helpful customer support assistant for a childcare center.
+Be concise and direct. Answer in 2-3 sentences max."""
+        
+        # Call Groq API with reduced max_tokens for concise responses
         llm_start = time.time()
         chat_completion = client.chat.completions.create(
             messages=[
@@ -148,8 +194,8 @@ If you don't know the answer, say so honestly and offer to help in other ways.""
                 {"role": "user", "content": request.message}
             ],
             model="llama-3.3-70b-versatile",
-            temperature=0.7,
-            max_tokens=1024
+            temperature=0.3,
+            max_tokens=256
         )
         llm_time = time.time() - llm_start
         
@@ -162,6 +208,9 @@ If you don't know the answer, say so honestly and offer to help in other ways.""
             metadata={
                 "model": "llama-3.3-70b-versatile",
                 "provider": "groq",
+                "rag_enabled": bool(rag_results),
+                "rag_results_count": len(rag_results),
+                "rag_sources": [r.get("source", "unknown") for r in rag_results] if rag_results else [],
                 "tokens": {
                     "input": chat_completion.usage.prompt_tokens if chat_completion.usage else 0,
                     "output": chat_completion.usage.completion_tokens if chat_completion.usage else 0
@@ -169,7 +218,8 @@ If you don't know the answer, say so honestly and offer to help in other ways.""
             },
             timing={
                 "total_ms": round(total_time * 1000, 2),
-                "llm_ms": round(llm_time * 1000, 2)
+                "llm_ms": round(llm_time * 1000, 2),
+                "rag_ms": round(rag_time * 1000, 2)
             }
         )
         

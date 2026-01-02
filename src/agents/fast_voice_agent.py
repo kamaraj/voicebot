@@ -157,22 +157,22 @@ class FastVoiceAgent:
         # Pre-compiled prompt templates
         self.prompt_template = "You are a helpful AI assistant. Be concise and friendly.\n\nUser: {query}\n\nAssistant:"
         
-        # RAG prompt - Customer Support Executive persona
-        self.rag_prompt_template = """You are a friendly Customer Support Executive at a childcare center. A parent is asking you a question. Use the information below to help them.
+        # RAG prompt - STRICT: Use ONLY document content, no elaboration
+        self.rag_prompt_template = """You are a customer support agent. Answer the question using ONLY the information provided below.
 
-KNOWLEDGE BASE:
+DOCUMENT CONTENT:
 {context}
 
-PARENT'S QUESTION: {query}
+QUESTION: {query}
 
-INSTRUCTIONS:
-- Respond naturally like a helpful support person, NOT like a search engine
-- Do NOT say "The answer can be found in..." or "According to the knowledge base..."
-- Just directly help them with their question in a warm, professional tone
-- Use "you can" and "here's how" language
-- Keep it concise but complete
+RULES:
+1. Use ONLY information from the document above - do NOT add extra details
+2. Keep your answer SHORT and DIRECT (2-3 sentences max)
+3. If the document has a clear answer, give it directly
+4. Do NOT elaborate, speculate, or add information not in the document
+5. Do NOT say "according to the document" - just answer directly
 
-YOUR RESPONSE:"""
+ANSWER:"""
         
         logger.info(
             "fast_agent_initialized", 
@@ -213,11 +213,11 @@ YOUR RESPONSE:"""
         """
         OPTIMIZED fast-path processing.
         Bypasses LangGraph for 60% faster responses.
-        Now with: Caching, RAG, Memory, and Async Guardrails!
+        Now with: Caching, RAG, Memory, Canonical Responses, and Async Guardrails!
         """
         start_time = time.time()
         
-        # 1. Check cache first (instant if hit!)
+        # 1. Check exact cache first (instant if hit!)
         cached_response = self.cache.get(user_message, context)
         if cached_response:
             logger.info("cache_hit", query=user_message[:50])
@@ -225,6 +225,51 @@ YOUR RESPONSE:"""
             self.memory.add_message(conversation_id, "user", user_message)
             self.memory.add_message(conversation_id, "assistant", cached_response['response'])
             return cached_response
+        
+        # 2. Check semantic cache (consistent answers for similar questions!)
+        try:
+            from src.cache.semantic_cache import get_semantic_cache
+            semantic_cache = get_semantic_cache(similarity_threshold=0.60)  # Lower threshold for hash-based embeddings
+            
+            semantic_hit = semantic_cache.get(user_message)
+            if semantic_hit:
+                logger.info("semantic_cache_hit", 
+                           similarity=semantic_hit["similarity"], 
+                           original=semantic_hit["original_question"][:50],
+                           query=user_message[:50])
+                
+                total_duration = time.time() - start_time
+                
+                result = {
+                    "response": semantic_hit["response"],
+                    "conversation_id": conversation_id,
+                    "tool_results": {},
+                    "metadata": {
+                        "path": "semantic_cache",
+                        "similarity": round(semantic_hit["similarity"], 3),
+                        "original_question": semantic_hit["original_question"],
+                        "cache_hit": True,
+                        "rag_enabled": False,
+                        "rag_results_count": 0,
+                        "memory_enabled": True
+                    },
+                    "timing": {
+                        "total_ms": round(total_duration * 1000, 2),
+                        "llm_ms": 0,
+                        "rag_ms": 0,
+                        "overhead_ms": 0,
+                        "guardrails_blocking_ms": 0
+                    },
+                    "tokens": {"input_tokens": 0, "output_tokens": 0, "total_tokens": 0}
+                }
+                
+                # Add to memory
+                self.memory.add_message(conversation_id, "user", user_message)
+                self.memory.add_message(conversation_id, "assistant", semantic_hit["response"])
+                
+                return result
+        except ImportError:
+            pass  # Semantic cache module not available
         
         # 2. Get conversation context
         conversation_context = self.memory.get_context(conversation_id, max_messages=5)
@@ -313,8 +358,16 @@ YOUR RESPONSE:"""
                 "tokens": token_usage  # ← Token tracking
             }
             
-            # Cache the response for future requests
+            # Cache the response for future requests (exact match)
             self.cache.set(user_message, result, context)
+            
+            # Also add to semantic cache for similar question matching
+            try:
+                from src.cache.semantic_cache import get_semantic_cache
+                semantic_cache = get_semantic_cache()
+                semantic_cache.set(user_message, response_text, {"path": "fast", "rag_enabled": bool(rag_results)})
+            except:
+                pass  # Semantic cache not available
             
             return result
         else:
