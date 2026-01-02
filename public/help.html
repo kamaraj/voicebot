@@ -366,9 +366,9 @@
                 const response = await fetch('/api/v1/documents/list');
                 const data = await response.json();
 
-                if (data.status === 'success' && data.documents) {
-                    // Update stats
-                    updateStats(data.total_sources, data.total_chunks);
+                if (data.success && data.documents) {
+                    // Update stats  
+                    updateStats(data.total, data.documents.reduce((sum, doc) => sum + (doc.questions_count * 3), 0));
 
                     // Clear list
                     list.innerHTML = '';
@@ -377,12 +377,14 @@
                     data.documents.forEach(doc => {
                         const li = document.createElement('li');
                         li.className = 'doc-item';
-                        li.onclick = () => viewDocument(doc.source);
+                        li.onclick = () => viewDocumentInfo(doc);
 
                         li.innerHTML = `
-                            <span class="doc-name">📄 ${doc.source}</span>
+                            <span class="doc-name">📄 ${doc.name}</span>
                             <div class="doc-info">
-                                <span class="chunk-badge">${doc.total_chunks} chunks</span>
+                                <span>${doc.topic}</span>
+                                <span class="chunk-badge">${doc.questions_count} Q&A</span>
+                                <span>${doc.size_kb} KB</span>
                             </div>
                         `;
                         list.appendChild(li);
@@ -407,6 +409,32 @@
 
         function askQuestion(question) {
             window.location.href = '/chat?q=' + encodeURIComponent(question);
+        }
+
+        function viewDocumentInfo(doc) {
+            const modal = document.getElementById('docModal');
+            const title = document.getElementById('modalTitle');
+            const content = document.getElementById('modalContent');
+
+            // Show modal with document info
+            modal.classList.add('active');
+            title.textContent = doc.name;
+
+            content.innerHTML = `
+<h3 style="color: #a855f7; margin-bottom: 15px;">📄 ${doc.name}</h3>
+<p><strong>Topic:</strong> ${doc.topic}</p>
+<p><strong>Filename:</strong> ${doc.filename}</p>
+<p><strong>Questions:</strong> ${doc.questions_count}</p>
+<p><strong>Size:</strong> ${doc.size_kb} KB</p>
+<p><strong>Status:</strong> <span style="color: #10b981;">✓ ${doc.status}</span></p>
+
+<hr style="margin: 20px 0; border-color: rgba(255,255,255,0.1);">
+
+<p style="color: #9ca3af; font-style: italic;">
+This deployment uses Groq LLM directly. The FAQ content is embedded in the model's training.
+For full document viewing with RAG retrieval, please use the local deployment.
+</p>
+            `;
         }
 
         async function viewDocument(sourceName) {
