@@ -199,3 +199,170 @@ async def handle_conversation_v1(request: ConversationRequest):
     return await handle_conversation(request)
 
 
+# Knowledge Base Documents (Static FAQ info for Vercel deployment)
+FAQ_DOCUMENTS = [
+    {
+        "id": "1",
+        "name": "System Usage FAQ",
+        "filename": "1_System_Usage_FAQ.md",
+        "topic": "System Usage",
+        "questions_count": 10,
+        "size_kb": 6.1,
+        "status": "indexed"
+    },
+    {
+        "id": "2",
+        "name": "Admission & Enrollment FAQ",
+        "filename": "2_Admission_Enrollment_FAQ.md",
+        "topic": "Admission",
+        "questions_count": 10,
+        "size_kb": 8.4,
+        "status": "indexed"
+    },
+    {
+        "id": "3",
+        "name": "Fees & Payment FAQ",
+        "filename": "3_Fees_Payment_FAQ.md",
+        "topic": "Fees",
+        "questions_count": 10,
+        "size_kb": 10.2,
+        "status": "indexed"
+    },
+    {
+        "id": "4",
+        "name": "Hours & Schedule FAQ",
+        "filename": "4_Hours_Schedule_FAQ.md",
+        "topic": "Schedule",
+        "questions_count": 10,
+        "size_kb": 7.4,
+        "status": "indexed"
+    },
+    {
+        "id": "5",
+        "name": "Safety & Security FAQ",
+        "filename": "5_Safety_Security_FAQ.md",
+        "topic": "Safety",
+        "questions_count": 10,
+        "size_kb": 8.3,
+        "status": "indexed"
+    },
+    {
+        "id": "6",
+        "name": "Food & Nutrition FAQ",
+        "filename": "6_Food_Nutrition_FAQ.md",
+        "topic": "Nutrition",
+        "questions_count": 10,
+        "size_kb": 9.7,
+        "status": "indexed"
+    },
+    {
+        "id": "7",
+        "name": "Health & Wellness FAQ",
+        "filename": "7_Health_Wellness_FAQ.md",
+        "topic": "Health",
+        "questions_count": 10,
+        "size_kb": 9.4,
+        "status": "indexed"
+    },
+    {
+        "id": "8",
+        "name": "Daily Activities FAQ",
+        "filename": "8_Daily_Activities_FAQ.md",
+        "topic": "Activities",
+        "questions_count": 10,
+        "size_kb": 9.8,
+        "status": "indexed"
+    },
+    {
+        "id": "9",
+        "name": "Staff Information FAQ",
+        "filename": "9_Staff_Info_FAQ.md",
+        "topic": "Staff",
+        "questions_count": 10,
+        "size_kb": 2.6,
+        "status": "indexed"
+    },
+    {
+        "id": "10",
+        "name": "Policies Guide FAQ",
+        "filename": "10_Policies_Guide_FAQ.md",
+        "topic": "Policies",
+        "questions_count": 10,
+        "size_kb": 2.7,
+        "status": "indexed"
+    }
+]
+
+
+@app.get("/api/v1/documents/list")
+async def list_documents():
+    """List all knowledge base documents."""
+    return {
+        "success": True,
+        "documents": FAQ_DOCUMENTS,
+        "total": len(FAQ_DOCUMENTS),
+        "message": "Knowledge base documents (Vercel serverless mode)"
+    }
+
+
+@app.get("/api/v1/documents/stats")
+async def get_document_stats():
+    """Get knowledge base statistics."""
+    total_questions = sum(doc["questions_count"] for doc in FAQ_DOCUMENTS)
+    total_size_kb = sum(doc["size_kb"] for doc in FAQ_DOCUMENTS)
+    
+    return {
+        "success": True,
+        "stats": {
+            "total_documents": len(FAQ_DOCUMENTS),
+            "total_questions": total_questions,
+            "total_size_kb": round(total_size_kb, 1),
+            "topics": [doc["topic"] for doc in FAQ_DOCUMENTS],
+            "text_chunks": total_questions * 3,  # Approximate chunks per question
+            "embedding_model": "LLM (Groq) - No local embeddings in serverless mode",
+            "vector_db": "N/A - Using LLM directly in serverless mode"
+        },
+        "mode": "serverless",
+        "note": "This deployment uses Groq LLM directly. Full RAG with ChromaDB requires local deployment."
+    }
+
+
+@app.get("/api/v1/knowledge-base/info")
+async def get_knowledge_base_info():
+    """Get comprehensive knowledge base information."""
+    total_questions = sum(doc["questions_count"] for doc in FAQ_DOCUMENTS)
+    
+    return {
+        "success": True,
+        "knowledge_base": {
+            "name": "Childcare Center FAQ Knowledge Base",
+            "version": "1.0.0",
+            "documents": len(FAQ_DOCUMENTS),
+            "text_chunks": total_questions * 3,
+            "faq_topics": len(FAQ_DOCUMENTS),
+            "questions_covered": total_questions,
+            "topics": [
+                {"name": doc["topic"], "questions": doc["questions_count"]} 
+                for doc in FAQ_DOCUMENTS
+            ],
+            "sample_questions": [
+                "How do I mark daily attendance?",
+                "What are the enrollment requirements?",
+                "What is the fee structure?",
+                "What are the operating hours?",
+                "How is my child's safety ensured?",
+                "What meals are provided?",
+                "What is the sick child policy?",
+                "What activities do children do?",
+                "What are the staff qualifications?",
+                "What is the discipline policy?"
+            ]
+        },
+        "deployment": {
+            "type": "Vercel Serverless",
+            "llm_provider": "Groq",
+            "model": "llama-3.3-70b-versatile",
+            "rag_enabled": False,
+            "note": "Full RAG with vector search requires local deployment with ChromaDB"
+        }
+    }
